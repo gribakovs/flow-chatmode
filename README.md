@@ -1,6 +1,6 @@
 # Flow Chatmode for GitHub Copilot
 
-AI-powered GitHub Copilot chatmode that transforms natural language business requirements into executable decision workflows. Create, test, and deploy sophisticated decision logic using natural language specifications, Gherkin DSL, YAML notation, and JSON schemas.
+AI-powered GitHub Copilot chatmode that transforms natural language business requirements into executable decision workflows. Create, test, and evaluate sophisticated decision logic using natural language specifications, Gherkin DSL, YAML notation, and JSON schemas.
 
 ## Overview
 
