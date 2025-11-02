@@ -1,0 +1,992 @@
+metadata:
+  name: "Health Insurance Claim Processing Decision Flow"
+  description: "Automated decision logic for health insurance claim processing"
+  version: "1.0"
+  created: "2025-11-01"
+  type: "decision_graph_notation"
+
+context:
+  background:
+    description: "Health Insurance Claim Processing Context"
+    prerequisites:
+      - workflow_engine_initialized: true
+      - mcp_tool_registry_available: true
+      - claim_processing_context_empty: true
+      - required_tools_configured: true
+      - insurance_policy_database_accessible: true
+      - medical_provider_network_available: true
+      - fraud_detection_system_enabled: true
+      - member_eligibility_database_current: true
+      - payment_processing_system_operational: true
+
+nodes:
+  - node:
+      id: "claim-intake"
+      type: "decision_node"
+      context: ["claim_validation", "initial_processing"]
+      description: "Process Initial Claim Intake"
+      scenario:
+        Given:
+          - a new claim is submitted with claim type <input__state.claim_type>
+          - claim amount is <input__state.claim_amount>
+          - policy status is <input__state.policy_status>
+          - member tier is <input__state.member_tier>
+        When:
+          - the intake system validates the claim
+        Then:
+          - it should execute tool <mcp_tool__name>
+          - set validation status to <output__state.validation_status>
+          - update processing priority to <output__state.processing_priority>
+          - record intake timestamp as <output__state.intake_timestamp>
+          - transition to <transition>
+      decision_table:
+        name: "Claim intake decision table"
+        columns:
+          - "input__state.claim_type"
+          - "input__state.claim_amount"
+          - "input__state.policy_status"
+          - "input__state.member_tier"
+          - "mcp_tool__name"
+          - "mcp_tool__output_sample"
+          - "output__state.validation_status"
+          - "output__state.processing_priority"
+          - "output__state.intake_timestamp"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.claim_type": "emergency"
+            "input:state.claim_amount": "state.claim_amount > 10000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "premium"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"validation": "priority_review", "flags": ["high_amount"], "estimated_time": "2hrs"}'
+            "output:state.validation_status": "requires_priority_review"
+            "output:state.processing_priority": "high"
+            "output:state.intake_timestamp": "new Date().toISOString()"
+            "probability": 1.0
+            "transition": "priority-review"
+          - "input:state.claim_type": "routine"
+            "input:state.claim_amount": "state.claim_amount <= 5000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "standard"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"validation": "auto_eligible", "checks_passed": 5, "processing_time": "15min"}'
+            "output:state.validation_status": "auto_approved_eligible"
+            "output:state.processing_priority": "standard"
+            "output:state.intake_timestamp": "timestamp_now"
+            "probability": 0.9
+            "transition": "eligibility-check"
+          - "input:state.claim_type": "routine"
+            "input:state.claim_amount": "state.claim_amount > 5000 AND state.claim_amount <= 10000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "standard"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"validation": "requires_review", "amount_threshold": "exceeded", "manual_check": true}'
+            "output:state.validation_status": "requires_amount_review"
+            "output:state.processing_priority": "medium"
+            "output:state.intake_timestamp": "timestamp_now"
+            "probability": 0.8
+            "transition": "manual-review"
+          - "input:state.claim_type": "preventive"
+            "input:state.claim_amount": "state.claim_amount <= 1000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "state.member_tier"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"validation": "fast_track", "preventive_benefit": true, "coverage": 100}'
+            "output:state.validation_status": "preventive_approved"
+            "output:state.processing_priority": "low"
+            "output:state.intake_timestamp": "current_timestamp"
+            "probability": 1.0
+            "transition": "auto-approval"
+          - "input:state.claim_type": "specialist"
+            "input:state.claim_amount": "state.claim_amount > 2000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "premium"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"validation": "manual_review", "specialist_network": true, "prior_auth": "required"}'
+            "output:state.validation_status": "requires_manual_review"
+            "output:state.processing_priority": "medium"
+            "output:state.intake_timestamp": "format_timestamp(now)"
+            "probability": 0.8
+            "transition": "manual-review"
+          - "input:state.claim_type": "any"
+            "input:state.claim_amount": "state.claim_amount"
+            "input:state.policy_status": "inactive"
+            "input:state.member_tier": "state.member_tier"
+            "mcp_tool:name": "run_in_terminal"
+            "mcp_tool:output_sample": '{"validation": "policy_inactive", "error": "coverage_expired", "action": "deny"}'
+            "output:state.validation_status": "policy_inactive"
+            "output:state.processing_priority": "immediate"
+            "output:state.intake_timestamp": "error_timestamp"
+            "probability": 1.0
+            "transition": "claim-denied"
+          - "input:state.claim_type": "any"
+            "input:state.claim_amount": "state.claim_amount > 50000"
+            "input:state.policy_status": "active"
+            "input:state.member_tier": "state.member_tier"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"validation": "fraud_check_required", "high_amount_flag": true, "investigation": "required"}'
+            "output:state.validation_status": "fraud_investigation_required"
+            "output:state.processing_priority": "urgent"
+            "output:state.intake_timestamp": "fraud_timestamp"
+            "probability": 1.0
+            "transition": "fraud-investigation"
+
+  - node:
+      id: "fraud-investigation"
+      type: "decision_node"
+      context: ["fraud_detection", "security_validation"]
+      description: "Investigate Potential Fraudulent Claims"
+      scenario:
+        Given:
+          - claim amount exceeds fraud threshold <input:state.fraud_threshold>
+          - claim pattern analysis shows <input:state.pattern_analysis>
+          - provider history indicates <input:state.provider_history>
+          - member claim history shows <input:state.member_history>
+        When:
+          - the fraud detection system analyzes the claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set fraud risk score to <output:state.fraud_risk_score>
+          - update investigation status to <output:state.investigation_status>
+          - set security flag to <output:state.security_flag>
+          - transition to <transition>
+      decision_table:
+        name: "Fraud investigation decision table"
+        columns:
+          - "input:state.fraud_threshold"
+          - "input:state.pattern_analysis"
+          - "input:state.provider_history"
+          - "input:state.member_history"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.fraud_risk_score"
+          - "output:state.investigation_status"
+          - "output:state.security_flag"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.fraud_threshold": "state.claim_amount > 50000"
+            "input:state.pattern_analysis": "suspicious_pattern"
+            "input:state.provider_history": "clean_history"
+            "input:state.member_history": "normal_usage"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"fraud_score": 0.3, "investigation": "standard_review", "provider_verified": true}'
+            "output:state.fraud_risk_score": 0.3
+            "output:state.investigation_status": "standard_investigation"
+            "output:state.security_flag": "low_risk"
+            "probability": 0.7
+            "transition": "manual-review"
+          - "input:state.fraud_threshold": "state.claim_amount > 100000"
+            "input:state.pattern_analysis": "multiple_red_flags"
+            "input:state.provider_history": "suspicious_activity"
+            "input:state.member_history": "excessive_claims"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"fraud_score": 0.8, "investigation": "full_investigation", "hold_payment": true}'
+            "output:state.fraud_risk_score": 0.8
+            "output:state.investigation_status": "full_fraud_investigation"
+            "output:state.security_flag": "high_risk"
+            "probability": 0.9
+            "transition": "fraud-hold"
+          - "input:state.fraud_threshold": "state.claim_amount > 25000"
+            "input:state.pattern_analysis": "normal_pattern"
+            "input:state.provider_history": "verified_provider"
+            "input:state.member_history": "first_time_claim"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"fraud_score": 0.1, "investigation": "expedited_review", "clear_to_process": true}'
+            "output:state.fraud_risk_score": 0.1
+            "output:state.investigation_status": "expedited_clearance"
+            "output:state.security_flag": "clear"
+            "probability": 0.8
+            "transition": "eligibility-check"
+
+  - node:
+      id: "fraud-hold"
+      type: "end_node"
+      context: ["fraud_prevention", "claim_suspension"]
+      description: "Process Fraud Hold on Claims"
+      scenario:
+        Given:
+          - fraud investigation requires claim suspension
+          - fraud risk score is <input:state.fraud_risk_score>
+          - investigation type is <input:state.investigation_type>
+        When:
+          - the fraud system places hold on claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set hold status to <output:state.hold_status>
+          - record investigation reference as <output:state.investigation_reference>
+          - set estimated resolution time to <output:state.resolution_time>
+          - update member notification to <output:state.member_notification>
+      decision_table:
+        name: "Fraud hold decision table"
+        columns:
+          - "input:state.fraud_risk_score"
+          - "input:state.investigation_type"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.hold_status"
+          - "output:state.investigation_reference"
+          - "output:state.resolution_time"
+          - "output:state.member_notification"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.fraud_risk_score": "state.fraud_risk_score > 0.7"
+            "input:state.investigation_type": "full_investigation"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"hold_placed": true, "ref": "FRAUD-2025-001", "investigation_time": "30_days"}'
+            "output:state.hold_status": "fraud_hold_active"
+            "output:state.investigation_reference": "FRAUD-INV-{generate_case_id()}"
+            "output:state.resolution_time": "30 business days"
+            "output:state.member_notification": "investigation_notice_sent"
+            "probability": 1.0
+            "transition": null
+          - "input:state.fraud_risk_score": "state.fraud_risk_score > 0.5"
+            "input:state.investigation_type": "standard_investigation"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"hold_placed": true, "ref": "REVIEW-2025-001", "investigation_time": "15_days"}'
+            "output:state.hold_status": "review_hold_active"
+            "output:state.investigation_reference": "REVIEW-{generate_case_id()}"
+            "output:state.resolution_time": "15 business days"
+            "output:state.member_notification": "review_notice_sent"
+            "probability": 0.9
+            "transition": null
+
+  - node:
+      id: "eligibility-check"
+      type: "decision_node"
+      context: ["policy_verification", "coverage_validation"]
+      description: "Verify Member Eligibility and Coverage"
+      scenario:
+        Given:
+          - claim validation status is <input:state.validation_status>
+          - member ID is <input:state.member_id>
+          - service date is <input:state.service_date>
+          - provider network status is <input:state.provider_network>
+        When:
+          - the eligibility system validates coverage
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set eligibility result to <output:state.eligibility_result>
+          - update coverage percentage to <output:state.coverage_percentage>
+          - set deductible status to <output:state.deductible_status>
+          - transition to <transition>
+      decision_table:
+        name: "Eligibility check decision table"
+        columns:
+          - "input:state.validation_status"
+          - "input:state.member_id"
+          - "input:state.service_date"
+          - "input:state.provider_network"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.eligibility_result"
+          - "output:state.coverage_percentage"
+          - "output:state.deductible_status"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.validation_status": "auto_approved_eligible"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "within_policy_period"
+            "input:state.provider_network": "in_network"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"eligible": true, "coverage": 80, "deductible_met": false, "copay": 25}'
+            "output:state.eligibility_result": "eligible_in_network"
+            "output:state.coverage_percentage": 80
+            "output:state.deductible_status": "deductible_not_met"
+            "probability": 1.0
+            "transition": "payment-calculation"
+          - "input:state.validation_status": "auto_approved_eligible"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "within_policy_period"
+            "input:state.provider_network": "out_of_network"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"eligible": true, "coverage": 60, "deductible_met": false, "penalty": "out_network"}'
+            "output:state.eligibility_result": "eligible_out_network"
+            "output:state.coverage_percentage": 60
+            "output:state.deductible_status": "deductible_not_met"
+            "probability": 1.0
+            "transition": "payment-calculation"
+          - "input:state.validation_status": "auto_approved_eligible"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "service_date_valid"
+            "input:state.provider_network": "state.provider_network"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"eligible": true, "coverage": 90, "deductible_met": true, "remaining_benefit": 5000}'
+            "output:state.eligibility_result": "eligible_deductible_met"
+            "output:state.coverage_percentage": 90
+            "output:state.deductible_status": "deductible_met"
+            "probability": 0.9
+            "transition": "payment-calculation"
+          - "input:state.validation_status": "preventive_approved"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "current_policy_year"
+            "input:state.provider_network": "state.provider_network"
+            "mcp_tool:name": "list_dir"
+            "mcp_tool:output_sample": '{"eligible": true, "coverage": 100, "preventive_benefit": true, "no_deductible": true}'
+            "output:state.eligibility_result": "preventive_covered"
+            "output:state.coverage_percentage": 100
+            "output:state.deductible_status": "no_deductible_required"
+            "probability": 1.0
+            "transition": "auto-approval"
+          - "input:state.validation_status": "auto_approved_eligible"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "outside_policy_period"
+            "input:state.provider_network": "state.provider_network"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"eligible": false, "reason": "service_date_invalid", "action": "deny"}'
+            "output:state.eligibility_result": "service_date_invalid"
+            "output:state.coverage_percentage": 0
+            "output:state.deductible_status": "not_applicable"
+            "probability": 1.0
+            "transition": "claim-denied"
+          - "input:state.validation_status": "requires_amount_review"
+            "input:state.member_id": "state.member_id"
+            "input:state.service_date": "within_policy_period"
+            "input:state.provider_network": "state.provider_network"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"eligible": true, "manual_review_required": true, "coverage": 80}'
+            "output:state.eligibility_result": "eligible_needs_review"
+            "output:state.coverage_percentage": 80
+            "output:state.deductible_status": "review_required"
+            "probability": 1.0
+            "transition": "manual-review"
+
+  - node:
+      id: "manual-review"
+      type: "chance_node"
+      context: ["human_review", "complex_decision_making"]
+      description: "Execute Manual Review Process"
+      scenario:
+        Given:
+          - claim requires manual review for <input:state.review_reason>
+          - claim complexity is <input:state.complexity_level>
+          - reviewer availability is <input:state.reviewer_available>
+          - review queue size is <input:state.queue_size>
+        When:
+          - the manual review system assigns the claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set review assignment to <output:state.review_assignment>
+          - update estimated review time to <output:state.estimated_review_time>
+          - set review priority to <output:state.review_priority>
+          - transition to <transition>
+      decision_table:
+        name: "Manual review decision table"
+        columns:
+          - "input:state.review_reason"
+          - "input:state.complexity_level"
+          - "input:state.reviewer_available"
+          - "input:state.queue_size"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.review_assignment"
+          - "output:state.estimated_review_time"
+          - "output:state.review_priority"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.review_reason": "high_amount"
+            "input:state.complexity_level": "complex"
+            "input:state.reviewer_available": "senior_reviewer"
+            "input:state.queue_size": "state.queue_size < 10"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"assigned_to": "senior_reviewer_1", "expertise": "high_value_claims", "sla": "4hrs"}'
+            "output:state.review_assignment": "senior_reviewer_{state.reviewer_id}"
+            "output:state.estimated_review_time": "4 hours"
+            "output:state.review_priority": "urgent"
+            "probability": 0.7
+            "transition": "senior-review"
+          - "input:state.review_reason": "high_amount"
+            "input:state.complexity_level": "complex"
+            "input:state.reviewer_available": "standard_reviewer"
+            "input:state.queue_size": "state.queue_size >= 10"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"assigned_to": "standard_reviewer_3", "backup_support": true, "sla": "8hrs"}'
+            "output:state.review_assignment": "standard_reviewer_{state.backup_id}"
+            "output:state.estimated_review_time": "8 hours"
+            "output:state.review_priority": "high"
+            "probability": 0.2
+            "transition": "standard-review"
+          - "input:state.review_reason": "prior_authorization"
+            "input:state.complexity_level": "medium"
+            "input:state.reviewer_available": "specialist_reviewer"
+            "input:state.queue_size": "state.queue_size"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"assigned_to": "medical_reviewer_2", "specialty": "authorization", "sla": "6hrs"}'
+            "output:state.review_assignment": "medical_specialist_{state.specialty}"
+            "output:state.estimated_review_time": "6 hours"
+            "output:state.review_priority": "medium"
+            "probability": 0.1
+            "transition": "specialist-review"
+          - "input:state.review_reason": "provider_network"
+            "input:state.complexity_level": "simple"
+            "input:state.reviewer_available": "any_available"
+            "input:state.queue_size": "state.queue_size"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"assigned_to": "network_reviewer_1", "automated_assist": true, "sla": "2hrs"}'
+            "output:state.review_assignment": "network_team_{state.auto_assist}"
+            "output:state.estimated_review_time": "2 hours"
+            "output:state.review_priority": "standard"
+            "probability": 0.8
+            "transition": "network-review"
+          - "input:state.review_reason": "documentation"
+            "input:state.complexity_level": "medium"
+            "input:state.reviewer_available": "document_specialist"
+            "input:state.queue_size": "state.queue_size <= 5"
+            "mcp_tool:name": "list_dir"
+            "mcp_tool:output_sample": '{"assigned_to": "doc_specialist_1", "ai_assist": true, "sla": "3hrs"}'
+            "output:state.review_assignment": "documentation_team"
+            "output:state.estimated_review_time": "3 hours"
+            "output:state.review_priority": "medium"
+            "probability": 0.6
+            "transition": "documentation-review"
+
+  - node:
+      id: "payment-calculation"
+      type: "decision_node"
+      context: ["benefit_calculation", "payment_processing"]
+      description: "Calculate Payment and Benefits"
+      scenario:
+        Given:
+          - eligibility result is <input:state.eligibility_result>
+          - coverage percentage is <input:state.coverage_percentage>
+          - deductible status is <input:state.deductible_status>
+          - claim amount is <input:state.claim_amount>
+        When:
+          - the payment system calculates benefits
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set payment amount to <output:state.payment_amount>
+          - update member responsibility to <output:state.member_responsibility>
+          - set payment status to <output:state.payment_status>
+          - transition to <transition>
+      decision_table:
+        name: "Payment calculation decision table"
+        columns:
+          - "input:state.eligibility_result"
+          - "input:state.coverage_percentage"
+          - "input:state.deductible_status"
+          - "input:state.claim_amount"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.payment_amount"
+          - "output:state.member_responsibility"
+          - "output:state.payment_status"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.eligibility_result": "eligible_in_network"
+            "input:state.coverage_percentage": 80
+            "input:state.deductible_status": "deductible_not_met"
+            "input:state.claim_amount": "state.claim_amount"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"payment": 800, "deductible_applied": 200, "copay": 25, "total_covered": 800}'
+            "output:state.payment_amount": "state.claim_amount * 0.8 - state.deductible_remaining"
+            "output:state.member_responsibility": "state.claim_amount - state.payment_amount"
+            "output:state.payment_status": "payment_calculated"
+            "probability": 1.0
+            "transition": "payment-approval"
+          - "input:state.eligibility_result": "eligible_out_network"
+            "input:state.coverage_percentage": 60
+            "input:state.deductible_status": "deductible_not_met"
+            "input:state.claim_amount": "state.claim_amount"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"payment": 600, "deductible_applied": 400, "penalty": 200, "total_covered": 600}'
+            "output:state.payment_amount": "state.claim_amount * 0.6 - state.out_network_penalty"
+            "output:state.member_responsibility": "state.claim_amount - state.payment_amount"
+            "output:state.payment_status": "payment_calculated"
+            "probability": 1.0
+            "transition": "payment-approval"
+          - "input:state.eligibility_result": "eligible_deductible_met"
+            "input:state.coverage_percentage": 90
+            "input:state.deductible_status": "deductible_met"
+            "input:state.claim_amount": "state.claim_amount"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"payment": 900, "deductible_applied": 0, "copay": 10, "total_covered": 900}'
+            "output:state.payment_amount": "state.claim_amount * 0.9"
+            "output:state.member_responsibility": "state.claim_amount * 0.1"
+            "output:state.payment_status": "payment_calculated"
+            "probability": 1.0
+            "transition": "payment-approval"
+          - "input:state.eligibility_result": "preventive_covered"
+            "input:state.coverage_percentage": 100
+            "input:state.deductible_status": "no_deductible_required"
+            "input:state.claim_amount": "state.claim_amount"
+            "mcp_tool:name": "list_dir"
+            "mcp_tool:output_sample": '{"payment": 1000, "deductible_applied": 0, "copay": 0, "total_covered": 1000}'
+            "output:state.payment_amount": "state.claim_amount"
+            "output:state.member_responsibility": 0
+            "output:state.payment_status": "full_payment_approved"
+            "probability": 1.0
+            "transition": "auto-approval"
+
+  - node:
+      id: "priority-review"
+      type: "decision_node"
+      context: ["expedited_processing", "high_value_claims"]
+      description: "Process Priority Review Claims"
+      scenario:
+        Given:
+          - claim requires priority review for <input:state.priority_reason>
+          - claim urgency level is <input:state.urgency_level>
+          - medical necessity is <input:state.medical_necessity>
+          - prior authorization status is <input:state.prior_auth_status>
+        When:
+          - the priority review system processes the claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set review decision to <output:state.review_decision>
+          - update approval status to <output:state.approval_status>
+          - set follow_up_required to <output:state.follow_up_required>
+          - transition to <transition>
+      decision_table:
+        name: "Priority review decision table"
+        columns:
+          - "input:state.priority_reason"
+          - "input:state.urgency_level"
+          - "input:state.medical_necessity"
+          - "input:state.prior_auth_status"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.review_decision"
+          - "output:state.approval_status"
+          - "output:state.follow_up_required"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.priority_reason": "emergency_treatment"
+            "input:state.urgency_level": "critical"
+            "input:state.medical_necessity": "medically_necessary"
+            "input:state.prior_auth_status": "not_required"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"decision": "immediate_approval", "emergency_override": true, "payment_authorized": true}'
+            "output:state.review_decision": "emergency_approved"
+            "output:state.approval_status": "approved"
+            "output:state.follow_up_required": false
+            "probability": 1.0
+            "transition": "payment-approval"
+          - "input:state.priority_reason": "high_cost_procedure"
+            "input:state.urgency_level": "high"
+            "input:state.medical_necessity": "medically_necessary"
+            "input:state.prior_auth_status": "approved"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"decision": "approved_with_conditions", "conditions": ["follow_up_required"], "payment_authorized": true}'
+            "output:state.review_decision": "conditionally_approved"
+            "output:state.approval_status": "approved"
+            "output:state.follow_up_required": true
+            "probability": 0.9
+            "transition": "payment-approval"
+          - "input:state.priority_reason": "experimental_treatment"
+            "input:state.urgency_level": "medium"
+            "input:state.medical_necessity": "under_review"
+            "input:state.prior_auth_status": "pending"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"decision": "refer_to_medical_board", "specialist_review": true, "hold_payment": true}'
+            "output:state.review_decision": "medical_board_review"
+            "output:state.approval_status": "pending"
+            "output:state.follow_up_required": true
+            "probability": 0.8
+            "transition": "medical-board-review"
+          - "input:state.priority_reason": "high_cost_procedure"
+            "input:state.urgency_level": "high"
+            "input:state.medical_necessity": "not_necessary"
+            "input:state.prior_auth_status": "not_required"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"decision": "denied_not_necessary", "reason": "medical_necessity_not_met", "appeal_available": true}'
+            "output:state.review_decision": "denied_medical_necessity"
+            "output:state.approval_status": "denied"
+            "output:state.follow_up_required": false
+            "probability": 1.0
+            "transition": "claim-denied"
+          - "input:state.priority_reason": "routine_high_cost"
+            "input:state.urgency_level": "low"
+            "input:state.medical_necessity": "medically_necessary"
+            "input:state.prior_auth_status": "expired"
+            "mcp_tool:name": "run_in_terminal"
+            "mcp_tool:output_sample": '{"decision": "prior_auth_required", "action": "request_authorization", "hold_claim": true}'
+            "output:state.review_decision": "prior_auth_needed"
+            "output:state.approval_status": "pending"
+            "output:state.follow_up_required": true
+            "probability": 1.0
+            "transition": "prior-auth-request"
+
+  - node:
+      id: "payment-approval"
+      type: "end_node"
+      context: ["payment_processing", "claim_completion"]
+      description: "Process Approved Payment"
+      scenario:
+        Given:
+          - payment amount is <input:state.payment_amount>
+          - member responsibility is <input:state.member_responsibility>
+          - payment status is <input:state.payment_status>
+          - provider information is <input:state.provider_id>
+        When:
+          - the payment system processes the approved claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set final payment status to <output:state.final_payment_status>
+          - record transaction ID as <output:state.transaction_id>
+          - update member account with <output:state.account_update>
+          - set claim completion timestamp to <output:state.completion_timestamp>
+      decision_table:
+        name: "Payment approval decision table"
+        columns:
+          - "input:state.payment_amount"
+          - "input:state.member_responsibility"
+          - "input:state.payment_status"
+          - "input:state.provider_id"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.final_payment_status"
+          - "output:state.transaction_id"
+          - "output:state.account_update"
+          - "output:state.completion_timestamp"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.payment_amount": "state.payment_amount > 0"
+            "input:state.member_responsibility": "state.member_responsibility"
+            "input:state.payment_status": "payment_calculated"
+            "input:state.provider_id": "state.provider_id"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"payment_processed": true, "transaction_id": "TXN-2025-001", "eft_scheduled": "2025-11-01"}'
+            "output:state.final_payment_status": "payment_processed_successfully"
+            "output:state.transaction_id": "TXN-{generate_id()}"
+            "output:state.account_update": "deductible_updated,claims_count_incremented"
+            "output:state.completion_timestamp": "new Date().toISOString()"
+            "probability": 1.0
+            "transition": null
+          - "input:state.payment_amount": "state.payment_amount"
+            "input:state.member_responsibility": 0
+            "input:state.payment_status": "full_payment_approved"
+            "input:state.provider_id": "state.provider_id"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"payment_processed": true, "transaction_id": "TXN-2025-002", "full_coverage": true}'
+            "output:state.final_payment_status": "full_payment_completed"
+            "output:state.transaction_id": "TXN-FULL-{generate_id()}"
+            "output:state.account_update": "preventive_benefit_used"
+            "output:state.completion_timestamp": "current_timestamp"
+            "probability": 1.0
+            "transition": null
+          - "input:state.payment_amount": "state.payment_amount"
+            "input:state.member_responsibility": "state.copay_amount"
+            "input:state.payment_status": "payment_calculated"
+            "input:state.provider_id": "state.provider_id"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"payment_processed": true, "transaction_id": "TXN-2025-003", "member_billed": true}'
+            "output:state.final_payment_status": "payment_with_copay_processed"
+            "output:state.transaction_id": "TXN-COPAY-{generate_id()}"
+            "output:state.account_update": "copay_billed,balance_updated"
+            "output:state.completion_timestamp": "format_timestamp(now)"
+            "probability": 0.9
+            "transition": null
+
+  - node:
+      id: "auto-approval"
+      type: "end_node"
+      context: ["automated_processing", "preventive_care"]
+      description: "Process Auto-Approved Claims"
+      scenario:
+        Given:
+          - claim type is preventive or routine
+          - coverage is <input:state.coverage_percentage>
+          - auto-approval criteria met for <input:state.auto_approval_reason>
+        When:
+          - the automated system processes the claim
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set auto processing status to <output:state.auto_processing_status>
+          - record processing time as <output:state.processing_time>
+          - update member benefits used to <output:state.benefits_used>
+          - set completion status to <output:state.completion_status>
+      decision_table:
+        name: "Auto approval decision table"
+        columns:
+          - "input:state.coverage_percentage"
+          - "input:state.auto_approval_reason"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.auto_processing_status"
+          - "output:state.processing_time"
+          - "output:state.benefits_used"
+          - "output:state.completion_status"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.coverage_percentage": 100
+            "input:state.auto_approval_reason": "preventive_care"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"auto_processed": true, "processing_time": "45 seconds", "no_member_cost": true}'
+            "output:state.auto_processing_status": "preventive_auto_processed"
+            "output:state.processing_time": "45 seconds"
+            "output:state.benefits_used": "state.claim_amount"
+            "output:state.completion_status": "completed_successfully"
+            "probability": 1.0
+            "transition": null
+          - "input:state.coverage_percentage": "state.coverage_percentage"
+            "input:state.auto_approval_reason": "routine_in_network"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"auto_processed": true, "processing_time": "2 minutes", "standard_copay": 25}'
+            "output:state.auto_processing_status": "routine_auto_processed"
+            "output:state.processing_time": "2 minutes"
+            "output:state.benefits_used": "calculate_benefits_used()"
+            "output:state.completion_status": "completed_with_copay"
+            "probability": 0.9
+            "transition": null
+          - "input:state.coverage_percentage": "state.coverage_percentage"
+            "input:state.auto_approval_reason": "wellness_visit"
+            "mcp_tool:name": "list_dir"
+            "mcp_tool:output_sample": '{"auto_processed": true, "processing_time": "30 seconds", "wellness_benefit": true}'
+            "output:state.auto_processing_status": "wellness_auto_processed"
+            "output:state.processing_time": "30 seconds"
+            "output:state.benefits_used": "wellness_benefit_amount"
+            "output:state.completion_status": "wellness_completed"
+            "probability": 1.0
+            "transition": null
+
+  - node:
+      id: "claim-denied"
+      type: "end_node"
+      context: ["claim_rejection", "denial_processing"]
+      description: "Process Denied Claims"
+      scenario:
+        Given:
+          - claim denial reason is <input:state.denial_reason>
+          - appeal rights apply for <input:state.appeal_eligible>
+          - denial category is <input:state.denial_category>
+        When:
+          - the denial system processes the rejection
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set denial status to <output:state.denial_status>
+          - create appeal information as <output:state.appeal_information>
+          - record denial timestamp as <output:state.denial_timestamp>
+          - set member notification status to <output:state.notification_status>
+      decision_table:
+        name: "Claim denied decision table"
+        columns:
+          - "input:state.denial_reason"
+          - "input:state.appeal_eligible"
+          - "input:state.denial_category"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.denial_status"
+          - "output:state.appeal_information"
+          - "output:state.denial_timestamp"
+          - "output:state.notification_status"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.denial_reason": "policy_inactive"
+            "input:state.appeal_eligible": false
+            "input:state.denial_category": "administrative"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"denied": true, "reason": "policy_not_active", "appeal": false, "member_notified": true}'
+            "output:state.denial_status": "administratively_denied"
+            "output:state.appeal_information": "no_appeal_available"
+            "output:state.denial_timestamp": "new Date().toISOString()"
+            "output:state.notification_status": "member_notified"
+            "probability": 1.0
+            "transition": null
+          - "input:state.denial_reason": "medical_necessity"
+            "input:state.appeal_eligible": true
+            "input:state.denial_category": "clinical"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"denied": true, "reason": "not_medically_necessary", "appeal": true, "appeal_deadline": "30_days"}'
+            "output:state.denial_status": "clinically_denied"
+            "output:state.appeal_information": "appeal_available_30_days"
+            "output:state.denial_timestamp": "current_timestamp"
+            "output:state.notification_status": "appeal_notice_sent"
+            "probability": 1.0
+            "transition": null
+          - "input:state.denial_reason": "service_date_invalid"
+            "input:state.appeal_eligible": true
+            "input:state.denial_category": "administrative"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"denied": true, "reason": "invalid_service_date", "appeal": true, "correction_possible": true}'
+            "output:state.denial_status": "date_related_denial"
+            "output:state.appeal_information": "appeal_or_correction_available"
+            "output:state.denial_timestamp": "format_timestamp(now)"
+            "output:state.notification_status": "correction_notice_sent"
+            "probability": 0.9
+            "transition": null
+          - "input:state.denial_reason": "out_of_network"
+            "input:state.appeal_eligible": true
+            "input:state.denial_category": "network"
+            "mcp_tool:name": "grep_search"
+            "mcp_tool:output_sample": '{"denied": true, "reason": "provider_out_of_network", "appeal": true, "emergency_exception": "possible"}'
+            "output:state.denial_status": "network_denial"
+            "output:state.appeal_information": "appeal_with_emergency_exception"
+            "output:state.denial_timestamp": "denial_timestamp"
+            "output:state.notification_status": "network_notice_sent"
+            "probability": 0.8
+            "transition": null
+
+  - node:
+      id: "prior-auth-request"
+      type: "transition_logic"
+      context: ["authorization_workflow", "external_processing"]
+      description: "Handle Prior Authorization Requests"
+      scenario:
+        Given:
+          - prior authorization is required for <input:state.service_type>
+          - request urgency is <input:state.request_urgency>
+          - provider credentials are <input:state.provider_credentials>
+        When:
+          - the authorization system processes the request
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set authorization status to <output:state.auth_status>
+          - update estimated decision time to <output:state.decision_time>
+          - set follow_up_action to <output:state.follow_up_action>
+          - transition to <transition>
+      decision_table:
+        name: "Prior auth request decision table"
+        columns:
+          - "input:state.service_type"
+          - "input:state.request_urgency"
+          - "input:state.provider_credentials"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.auth_status"
+          - "output:state.decision_time"
+          - "output:state.follow_up_action"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.service_type": "emergency_procedure"
+            "input:state.request_urgency": "urgent"
+            "input:state.provider_credentials": "verified_emergency"
+            "mcp_tool:name": "run_in_terminal"
+            "mcp_tool:output_sample": '{"auth_status": "emergency_approved", "retroactive": true, "valid_period": "immediate"}'
+            "output:state.auth_status": "emergency_authorization"
+            "output:state.decision_time": "immediate"
+            "output:state.follow_up_action": "retroactive_documentation"
+            "probability": 1.0
+            "transition": "payment-calculation"
+          - "input:state.service_type": "elective_surgery"
+            "input:state.request_urgency": "standard"
+            "input:state.provider_credentials": "network_provider"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"auth_status": "pending_review", "medical_review": true, "timeline": "5_business_days"}'
+            "output:state.auth_status": "pending_medical_review"
+            "output:state.decision_time": "5 business days"
+            "output:state.follow_up_action": "await_medical_decision"
+            "probability": 0.8
+            "transition": "manual-review"
+          - "input:state.service_type": "diagnostic_imaging"
+            "input:state.request_urgency": "routine"
+            "input:state.provider_credentials": "in_network"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"auth_status": "auto_approved", "criteria_met": true, "valid_period": "30_days"}'
+            "output:state.auth_status": "automatically_authorized"
+            "output:state.decision_time": "immediate"
+            "output:state.follow_up_action": "proceed_with_service"
+            "probability": 0.9
+            "transition": "eligibility-check"
+          - "input:state.service_type": "experimental_treatment"
+            "input:state.request_urgency": "standard"
+            "input:state.provider_credentials": "specialist_provider"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"auth_status": "requires_specialist_review", "expert_panel": true, "timeline": "10_business_days"}'
+            "output:state.auth_status": "specialist_review_required"
+            "output:state.decision_time": "10 business days"
+            "output:state.follow_up_action": "expert_panel_review"
+            "probability": 1.0
+            "transition": "medical-board-review"
+          - "input:state.service_type": "any"
+            "input:state.request_urgency": "state.request_urgency"
+            "input:state.provider_credentials": "invalid_provider"
+            "mcp_tool:name": "run_in_terminal"
+            "mcp_tool:output_sample": '{"auth_status": "provider_verification_failed", "action": "deny", "reason": "invalid_credentials"}'
+            "output:state.auth_status": "provider_verification_failed"
+            "output:state.decision_time": "immediate"
+            "output:state.follow_up_action": "claim_denial_process"
+            "probability": 1.0
+            "transition": "claim-denied"
+
+  - node:
+      id: "medical-board-review"
+      type: "end_node"
+      context: ["expert_review", "complex_medical_decisions"]
+      description: "Process Medical Board Review"
+      scenario:
+        Given:
+          - case requires expert medical review for <input:state.medical_complexity>
+          - board review type is <input:state.review_type>
+          - clinical evidence quality is <input:state.evidence_quality>
+        When:
+          - the medical board completes their review
+        Then:
+          - it should execute tool <mcp_tool:name>
+          - set board decision to <output:state.board_decision>
+          - record expert recommendations as <output:state.expert_recommendations>
+          - set final review status to <output:state.final_review_status>
+          - update case completion time to <output:state.completion_time>
+      decision_table:
+        name: "Medical board review decision table"
+        columns:
+          - "input:state.medical_complexity"
+          - "input:state.review_type"
+          - "input:state.evidence_quality"
+          - "mcp_tool:name"
+          - "mcp_tool:output_sample"
+          - "output:state.board_decision"
+          - "output:state.expert_recommendations"
+          - "output:state.final_review_status"
+          - "output:state.completion_time"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.medical_complexity": "high_complexity"
+            "input:state.review_type": "experimental_treatment"
+            "input:state.evidence_quality": "strong_evidence"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"decision": "approved_with_monitoring", "conditions": ["quarterly_reviews"], "specialist_required": true}'
+            "output:state.board_decision": "approved_experimental"
+            "output:state.expert_recommendations": "quarterly_monitoring_required"
+            "output:state.final_review_status": "approved_with_conditions"
+            "output:state.completion_time": "14 business days"
+            "probability": 1.0
+            "transition": null
+          - "input:state.medical_complexity": "medium_complexity"
+            "input:state.review_type": "standard_procedure"
+            "input:state.evidence_quality": "adequate_evidence"
+            "mcp_tool:name": "create_file"
+            "mcp_tool:output_sample": '{"decision": "approved_standard", "no_conditions": true, "standard_care": true}'
+            "output:state.board_decision": "standard_approval"
+            "output:state.expert_recommendations": "follow_standard_protocols"
+            "output:state.final_review_status": "approved_unconditionally"
+            "output:state.completion_time": "7 business days"
+            "probability": 0.9
+            "transition": null
+          - "input:state.medical_complexity": "high_complexity"
+            "input:state.review_type": "investigational"
+            "input:state.evidence_quality": "insufficient_evidence"
+            "mcp_tool:name": "file_search"
+            "mcp_tool:output_sample": '{"decision": "denied_insufficient_evidence", "appeal_process": true, "additional_data_needed": true}'
+            "output:state.board_decision": "denied_evidence"
+            "output:state.expert_recommendations": "request_additional_clinical_data"
+            "output:state.final_review_status": "denied_with_appeal_option"
+            "output:state.completion_time": "10 business days"
+            "probability": 0.8
+            "transition": null
+
+workflow_execution:
+  start_node: "claim-intake"
+  state_management:
+    initial_state: {}
+    state_transitions: true
+    state_persistence: true
+  error_handling:
+    default_error_node: "claim-denied"
+    timeout_handling: true
+    retry_logic: true
+  monitoring:
+    execution_tracking: true
+    performance_metrics: true
+    audit_trail: true

@@ -4,21 +4,25 @@ Specialized GitHub Copilot's chatmode for creating and evaluating sophisticated 
 
 ## Overview
 
-The Flow chatmode transforms GitHub Copilot into an expert Systems Architect and Process Designer, capable of generating comprehensive decision graphs that model complex business workflows. While leveraging the familiar Gherkin DSL syntax, it applies specialized conventions to create Decision Graph Notation - a powerful approach for modeling conditional logic, state transitions, and MCP tool orchestration.
+The Flow chatmode transforms GitHub Copilot into an expert Systems Architect and Process Designer, capable of generating comprehensive decision graphs that model complex business workflows. It supports dual output formats: familiar Gherkin DSL `.feature` files and structured YAML Decision Graph Notation (`.dgn.yaml`) files - providing powerful approaches for modeling conditional logic, state transitions, and MCP tool orchestration.
 
 ## Key Features
 
 ### 🎯 **Decision Graph Generation**
+- **Dual Output Formats**: Generate both Gherkin `.feature` files and structured YAML `.dgn.yaml` decision graphs
 - **Three Node Types**: Decision nodes (conditional logic), End nodes (terminal states), Chance nodes (probabilistic selection)
 - **State-Driven Architecture**: Complete state object management throughout workflow execution
-- **Conditional Logic**: Examples tables function as decision tables with probability-based routing
+- **Conditional Logic**: Examples tables and YAML decision tables with probability-based routing
 - **MCP Tool Integration**: Seamless integration with Model Context Protocol tools for external system interaction
+- **Organized File Structure**: Automatic storage in `features/flows/` with appropriate file extensions
 
 ### 🔍 **Decision Graph Evaluation**
 - **Interactive Testing**: Execute decision graphs with specified inputs to see complete traversal paths
+- **Dual Format Support**: Evaluate both `.feature` and `.dgn.yaml` decision graphs
 - **State Transition Tracking**: Detailed reporting of state changes at each node
 - **Visual Path Representation**: ASCII diagrams showing execution flow and decision points
 - **Alternative Path Analysis**: Identify other possible execution routes and decision outcomes
+- **Comprehensive Test Reports**: Generate `.feature.tests.md` and `.dgn.tests.md` evaluation reports
 
 ### ⚡ **Production-Ready Output**
 - **Mandatory Validation**: 3-iteration improvement cycle ensures production readiness
@@ -74,6 +78,12 @@ Create an e-commerce order processing flow with inventory validation,
 payment processing, fraud detection, and shipping coordination
 ```
 
+**Request Specific Output Format:**
+```
+Generate a user authentication flow in YAML format with account lockout 
+and password reset capabilities
+```
+
 **Evaluate Existing Flows:**
 ```
 Evaluate the user-auth-flow for input: 
@@ -85,9 +95,11 @@ last_login='2025-10-15'
 
 ## Decision Graph Notation
 
-The Flow chatmode uses Gherkin DSL with specialized conventions to create Decision Graph Notation:
+The Flow chatmode supports two powerful formats for modeling decision graphs:
 
-### Core Conventions
+### 1. Gherkin DSL Format (`.feature` files)
+
+Uses Gherkin DSL with specialized conventions to create Decision Graph Notation:
 
 #### **Examples Tables as Decision Tables**
 ```gherkin
@@ -114,24 +126,99 @@ Scenario Outline: Process State Transition
   And transition to <transition>
 ```
 
-### Decision Table Columns
+### 2. YAML Decision Graph Notation (`.dgn.yaml` files)
 
-| Column Type | Format | Purpose |
-|------------|---------|---------|
-| **Input State** | `<input:state.property_name>` | Drive decision logic |
-| **Output State** | `<output:state.property_name>` | Update workflow state |
-| **MCP Tool** | `<mcp_tool:name>` | Tool to execute for this path |
-| **Mock Output** | `<mcp_tool:output_sample>` | Sample output for testing |
-| **Probability** | `<probability>` | Selection weight (0.0-1.0) |
-| **Transition** | `<transition>` | Next scenario ID (empty for End nodes) |
+Structured YAML format for complex decision graphs:
+
+```yaml
+metadata:
+  name: "Business Process Decision Flow"
+  description: "Automated decision logic for business process"
+  version: "1.0"
+  created: "2025-11-02"
+  type: "decision_graph_notation"
+
+context:
+  background:
+    description: "Business Process Context"
+    prerequisites:
+      - workflow_engine_initialized: true
+      - mcp_tool_registry_available: true
+      - required_tools_configured: true
+
+nodes:
+  - node:
+      id: "process-intake"
+      type: "decision_node"
+      context: ["validation", "processing"]
+      description: "Process Initial Request"
+      scenario:
+        Given:
+          - a new request with type <input__state.request_type>
+          - request priority is <input__state.priority>
+        When:
+          - the system validates the request
+        Then:
+          - it should execute tool <mcp_tool__name>
+          - set validation status to <output__state.validation_status>
+          - transition to <transition>
+      decision_table:
+        name: "Request processing decision table"
+        columns:
+          - "input__state.request_type"
+          - "input__state.priority"
+          - "mcp_tool__name"
+          - "mcp_tool__output_sample"
+          - "output__state.validation_status"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.request_type": "urgent"
+            "input:state.priority": "high"
+            "mcp_tool:name": "semantic_search"
+            "mcp_tool:output_sample": '{"validation": "approved", "priority": "immediate"}'
+            "output:state.validation_status": "approved"
+            "probability": 1.0
+            "transition": "priority-processing"
+
+workflow_execution:
+  start_node: "process-intake"
+  state_management:
+    initial_state: {}
+    state_transitions: true
+    state_persistence: true
+```
+
+### File Organization Structure
+
+```
+features/flows/
+├── process-name.feature              # Gherkin DSL decision graph
+├── process-name.dgn.yaml            # YAML decision graph
+├── process-name.feature.tests.md    # Gherkin evaluation report
+└── process-name.dgn.tests.md        # YAML evaluation report
+```
+
+### Decision Table Columns (Both Formats)
+
+| Column Type | Gherkin Format | YAML Format | Purpose |
+|------------|---------|-------------|---------|
+| **Input State** | `<input:state.property_name>` | `input__state.property_name` | Drive decision logic |
+| **Output State** | `<output:state.property_name>` | `output__state.property_name` | Update workflow state |
+| **MCP Tool** | `<mcp_tool:name>` | `mcp_tool__name` | Tool to execute for this path |
+| **Mock Output** | `<mcp_tool:output_sample>` | `mcp_tool__output_sample` | Sample output for testing |
+| **Probability** | `<probability>` | `probability` | Selection weight (0.0-1.0) |
+| **Transition** | `<transition>` | `transition` | Next scenario ID (empty for End nodes) |
 
 ## Flow Chatmode Capabilities
 
 ### 1. **Automatic Flow Generation**
+- **Dual Format Output**: Generate both Gherkin `.feature` and YAML `.dgn.yaml` formats
 - **Business Logic Analysis**: Converts requirements into decision trees
 - **State Management**: Comprehensive state object design
 - **Tool Selection**: Optimal MCP tool assignment based on requirements
 - **Error Handling**: Complete error recovery path generation
+- **Organized Storage**: Automatic file organization in `features/flows/` directory
 
 ### 2. **Mandatory Validation Protocol**
 Every generated flow undergoes a rigorous 3-iteration improvement cycle:
@@ -150,15 +237,17 @@ Every generated flow undergoes a rigorous 3-iteration improvement cycle:
 ### 4. **Decision Graph Evaluation**
 When evaluating flows with specified inputs:
 
+- **Multi-Format Support**: Evaluate both `.feature` and `.dgn.yaml` decision graphs
 - **State Object Creation**: Initialize properties to identify start node
 - **Step-by-Step Execution**: Detailed node-by-node traversal
 - **Decision Logic Explanation**: Why specific table rows were selected
 - **Visual Path Representation**: ASCII diagrams of execution flow
 - **Alternative Path Analysis**: Other possible execution routes
+- **Test Report Generation**: Create comprehensive `.tests.md` evaluation reports
 
 ## Example: Health Insurance Claim Processing
 
-### Generated Flow Structure
+### Generated Flow Structure (Gherkin Format)
 ```gherkin
 Feature: Health Insurance Claim Processing Decision Flow
   As a health insurance system
@@ -181,6 +270,42 @@ Scenario Outline: Process Initial Claim Intake
     | preventive | state.claim_amount <= 1000 | create_file | 1.0 | auto-approval |
 ```
 
+### Generated Flow Structure (YAML Format)
+```yaml
+metadata:
+  name: "Health Insurance Claim Processing Decision Flow"
+  description: "Automated decision logic for health insurance claim processing"
+  version: "1.0"
+  type: "decision_graph_notation"
+
+nodes:
+  - node:
+      id: "claim-intake"
+      type: "decision_node"
+      context: ["claim_validation", "initial_processing"]
+      description: "Process Initial Claim Intake"
+      decision_table:
+        name: "Claim intake decision table"
+        columns:
+          - "input__state.claim_type"
+          - "input__state.claim_amount"
+          - "mcp_tool__name"
+          - "probability"
+          - "transition"
+        rows:
+          - "input:state.claim_type": "emergency"
+            "input:state.claim_amount": "state.claim_amount > 10000"
+            "mcp_tool:name": "semantic_search"
+            "probability": 1.0
+            "transition": "priority-review"
+
+workflow_execution:
+  start_node: "claim-intake"
+  state_management:
+    initial_state: {}
+    state_transitions: true
+```
+
 ### Test Case Example
 ```
 Evaluate the health-insurance-claim-flow for input: 
@@ -188,6 +313,15 @@ claim_type='emergency',
 claim_amount=15000, 
 policy_status='active', 
 member_tier='premium'
+```
+
+### File Structure Generated
+```
+features/flows/
+├── health-insurance-claim-flow.feature          # Gherkin DSL version
+├── health-insurance-claim-flow.dgn.yaml        # YAML version
+├── health-insurance-claim-flow.feature.tests.md # Gherkin evaluation report
+└── health-insurance-claim-flow.dgn.tests.md    # YAML evaluation report
 ```
 
 ### Expected Evaluation Output
@@ -255,10 +389,12 @@ Examples: Parallel validation processes
 ## Best Practices
 
 ### 1. **Flow Design**
+- **Choose Format**: Select Gherkin `.feature` or YAML `.dgn.yaml` based on complexity and team preferences
 - **Start Simple**: Begin with core happy path, then add edge cases
 - **State-First**: Design your state object properties before building decision tables
 - **Clear Naming**: Use descriptive scenario IDs and meaningful state property names
 - **Error Handling**: Always include error recovery paths and terminal denial states
+- **File Organization**: Use consistent naming conventions for related flow files
 
 ### 2. **Decision Tables**
 - **Comprehensive Coverage**: Ensure all possible input combinations are handled
@@ -267,10 +403,12 @@ Examples: Parallel validation processes
 - **Tool Selection**: Choose appropriate MCP tools for each decision path
 
 ### 3. **Testing Strategy**
+- **Format-Specific Testing**: Test both Gherkin and YAML versions if using dual formats
 - **Boundary Testing**: Test edge cases and threshold values
 - **Error Scenarios**: Validate error handling and recovery paths
 - **Performance Testing**: Verify execution times meet requirements
 - **Integration Testing**: Confirm MCP tool compatibility
+- **Test Report Review**: Analyze generated `.tests.md` files for completeness
 
 ### 4. **Production Deployment**
 - **Validation Completion**: Ensure 3-iteration cycle is completed
@@ -309,8 +447,9 @@ Examples: Parallel validation processes
 
 **Evaluation Errors:**
 - Ensure all required input properties are provided
-- Verify state property names match decision table columns
+- Verify state property names match decision table columns (check both formats)
 - Check that scenario IDs in transitions exist in the flow
+- Validate file extensions match evaluation format (.feature vs .dgn.yaml)
 
 **Poor Performance:**
 - Review decision table complexity
@@ -322,6 +461,7 @@ Examples: Parallel validation processes
 
 **Flow Generation Issues:**
 - Provide detailed requirements and constraints
+- Specify preferred output format (Gherkin, YAML, or both)
 - Specify input/output data structures
 - Include business rules and edge cases
 - Request specific testing scenarios
@@ -336,6 +476,7 @@ Examples: Parallel validation processes
 
 ### Extending the Chatmode
 - **New Node Types**: Add specialized node patterns for specific domains
+- **Format Enhancements**: Improve Gherkin and YAML format capabilities
 - **Tool Integration**: Expand MCP tool library and usage patterns
 - **Expression Languages**: Add support for additional expression types
 - **Visualization**: Enhance path visualization and reporting formats
@@ -352,8 +493,8 @@ This chatmode is designed for use with GitHub Copilot in VS Code. Ensure complia
 
 ---
 
-**Flow Chatmode Version**: 1.0  
+**Flow Chatmode Version**: 1.1  
 **Compatible with**: VS Code + GitHub Copilot  
-**Last Updated**: November 1, 2025  
+**Last Updated**: November 2, 2025  
 
-For more examples and advanced usage patterns, see the complete Flow chatmode definition and health insurance claim processing example included in this repository.
+For more examples and advanced usage patterns, see the complete Flow chatmode definition and health insurance claim processing example (both Gherkin `.feature` and YAML `.dgn.yaml` formats) included in this repository.
