@@ -1,6 +1,6 @@
 # Flow Chatmode for GitHub Copilot
 
-Specialized GitHub Copilot's chatmode for creating comprehensive natural language specifications and executing sophisticated decision flow graphs with AI-powered processing, supporting multiple output formats including Gherkin DSL and YAML Decision Graph Notation for enterprise-grade workflow automation.
+AI-powered GitHub Copilot chatmode that transforms natural language business requirements into executable decision workflows. Create, test, and deploy sophisticated decision logic using natural language specifications, Gherkin DSL, YAML notation, and JSON schemas.
 
 ## Overview
 
